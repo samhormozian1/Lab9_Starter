@@ -83,11 +83,26 @@
       <button>Start Timer</button>
       <button>End Timer</button>
       <button>Console Trace</button>
-      <button>Trigger a Global Error</button>
+      <button id="trigger-error">Trigger a Global Error</button>
     </section>
   </main>
 
+  <script src="https://cdn.trackjs.com/agent/v3/latest/t.js"></script>
+<script>
+  window.TrackJS && TrackJS.install({
+    token: "2420c153a47746abb287925d4128e863"
+    // for more configuration options, see https://docs.trackjs.com
+  });
+</script>
+
   <script>
+    class CalculationError extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "CalculationError";
+      }
+    }
+
     let form = document.querySelector('form');
     form.addEventListener('submit', e => {
       e.preventDefault();
@@ -95,13 +110,103 @@
       let firstNum = document.querySelector('#first-num').value;
       let secondNum = document.querySelector('#second-num').value;
       let operator = document.querySelector('#operator').value;
-      output.innerHTML = eval(`${firstNum} ${operator} ${secondNum}`);
+
+      try {
+        if (!firstNum || !secondNum) {
+          throw new CalculationError('Both input fields must have values.');
+        }
+        if (isNaN(firstNum) || isNaN(secondNum)) {
+          throw new CalculationError('Input values must be numbers.');
+        }
+        if (operator === '/' && secondNum == 0) {
+          throw new CalculationError('Cannot divide by zero.');
+        }
+        let result = eval(`${firstNum} ${operator} ${secondNum}`);
+        output.innerHTML = result;
+      } catch (error) {
+        if (error instanceof CalculationError) {
+          output.innerHTML = error.message;
+          console.error('Calculation error:', error);
+        } else {
+          console.error('Unexpected error:', error);
+        }
+      } finally {
+        console.log('Calculation attempted');
+      }
     });
 
     let errorBtns = Array.from(document.querySelectorAll('#error-btns > button'));
 
-    // Start your code here
-    // You may move this JS to another file if you wish
+    errorBtns.forEach(button => {
+      button.addEventListener('click', () => {
+        try {
+          switch (button.textContent) {
+            case 'Console Log':
+              console.log('This is a console log message.');
+              break;
+            case 'Console Error':
+              console.error('This is a console error message.');
+              break;
+            case 'Console Count':
+              console.count('Console count');
+              break;
+            case 'Console Warn':
+              console.warn('This is a console warn message.');
+              break;
+            case 'Console Assert':
+              console.assert(false, 'This is a console assert message.');
+              break;
+            case 'Console Clear':
+              console.clear();
+              break;
+            case 'Console Dir':
+              console.dir(document.body);
+              break;
+            case 'Console dirxml':
+              console.dirxml(document);
+              break;
+            case 'Console Group Start':
+              console.group('Console Group');
+              console.log('Inside group');
+              console.groupEnd();
+              break;
+            case 'Console Group End':
+              // No specific action needed for this button since groupEnd is handled above
+              break;
+            case 'Console Table':
+              console.table([{ name: "John", age: 30 }, { name: "Jane", age: 25 }]);
+              break;
+            case 'Start Timer':
+              console.time('Timer');
+              break;
+            case 'End Timer':
+              console.timeEnd('Timer');
+              break;
+            case 'Console Trace':
+              console.trace('This is a console trace.');
+              break;
+            case 'Trigger a Global Error':
+              triggerGlobalError();
+              break;
+            default:
+              throw new Error('Unknown button action');
+          }
+        } catch (error) {
+          console.error('Button action error:', error);
+        } finally {
+          console.log(`${button.textContent} button was clicked.`);
+        }
+      });
+    });
+
+    function triggerGlobalError() {
+      nonExistentFunction(); // This will cause a reference error
+    }
+
+    window.addEventListener('error', function (event) {
+      console.log('A global error occurred:', event.message);
+      event.preventDefault(); // Prevent the default handling of the error
+    });
   </script>
 </body>
 
